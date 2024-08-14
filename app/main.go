@@ -1,7 +1,7 @@
 package main
 
 import (
-	dns "github.com/codecrafters-io/dns-server-starter-go/app/dns"
+	dns "app/dns"
 )
 
 func main() {

@@ -16,10 +16,14 @@ func TestDnsHeader(t *testing.T) {
 	}
 	defer connection.Close()
 
+	expectedPacketIdentifier := uint16(1234)
+
 	// Setup
 	packetRequest := packet.DnsPacket{
 		Header: &section.DnsHeader{},
 	}
+	packetRequest.Header.SetPacketIdentifier(expectedPacketIdentifier)
+
 	_, err = connection.Write(packetRequest.Bytes())
 	if err != nil {
 		t.Error(err)
@@ -32,8 +36,8 @@ func TestDnsHeader(t *testing.T) {
 		t.Error(err)
 	}
 
-	if bytesReadCount <= 12 {
-		t.Errorf("Expected to receive more than %d bytes, but got %d", 12, bytesReadCount)
+	if bytesReadCount != 12 {
+		t.Errorf("Expected to receive %d bytes, but got %d", 12, bytesReadCount)
 	}
 
 	packetIdentifier := (uint16(responseBuffer[0]) << 8) | uint16(responseBuffer[1])
@@ -41,18 +45,18 @@ func TestDnsHeader(t *testing.T) {
 	questionCount := responseBuffer[5] // bytes [4][5] - big-endian
 	answerCount := responseBuffer[7]   // bytes [6][7] - big-endian
 
-	if packetIdentifier != 1234 {
+	if packetIdentifier != expectedPacketIdentifier {
 		t.Errorf("Expected PacketIdentifier to be %d, but got %d", 1234, packetIdentifier)
 	}
 	if responseIndicator != 1 {
 		t.Errorf("Expected ResponseIndicator to be %d, but got %d", 1, responseIndicator)
 	}
 
-	if questionCount != 1 {
-		t.Errorf("Expected QuestionCount to be %d, but got %d", 1, questionCount)
+	if questionCount != 0 {
+		t.Errorf("Expected QuestionCount to be %d, but got %d", 0, questionCount)
 	}
-	if answerCount != 1 {
-		t.Errorf("Expected AnswerCount to be %d, but got %d", 1, answerCount)
+	if answerCount != 0 {
+		t.Errorf("Expected AnswerCount to be %d, but got %d", 0, answerCount)
 	}
 }
 

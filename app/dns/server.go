@@ -8,7 +8,6 @@ import (
 	. "app/dns/packet"
 	"app/dns/packet/common/dns_class"
 	"app/dns/packet/common/dns_type"
-	"app/dns/packet/common/domain_name"
 	. "app/dns/packet/section"
 )
 
@@ -63,25 +62,22 @@ func (server *DnsServer) StartServer() {
 			dnsHeader.SetResponseCode(4)
 		}
 
-		dnsQuestion := &DnsQuestion{
-			DomainName: dname.NewByDomainName("codecrafters.io"),
-			QueryType:  dnstype.HostAddress.QueryValue(),
-			QueryClass: dnsclass.Internet.QueryValue(),
-		}
-		dnsAnswer := &DnsAnswer{
-			DomainName:  dname.NewByDomainName("codecrafters.io"),
-			RecordType:  dnstype.HostAddress,
-			RecordClass: dnsclass.Internet,
-			TimeToLive:  60,
-			Length:      4,
-			Data:        []byte{8, 8, 8, 8},
-		}
-
 		responsePacket := &DnsPacket{
 			Header: dnsHeader,
 		}
-		responsePacket.AppendQuestionIncrementCount(dnsQuestion)
-		responsePacket.AppendAnswerIncrementCount(dnsAnswer)
+
+		for _, dnsQuestion := range receivedPacket.Questions {
+			dnsAnswer := &DnsAnswer{
+				DomainName:  dnsQuestion.DomainName,
+				RecordType:  dnstype.HostAddress,
+				RecordClass: dnsclass.Internet,
+				TimeToLive:  60,
+				Length:      4,
+				Data:        []byte{8, 8, 8, 8},
+			}
+			responsePacket.AppendAnswerIncrementCount(dnsAnswer)
+			responsePacket.AppendQuestionIncrementCount(dnsQuestion)
+		}
 
 		println(responsePacket.DumpPacket(false))
 

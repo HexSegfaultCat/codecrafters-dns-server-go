@@ -52,8 +52,16 @@ func (server *DnsServer) StartServer() {
 		println(receivedPacket.DumpPacket(true))
 
 		dnsHeader := &DnsHeader{}
-		dnsHeader.SetPacketIdentifier(1234)
+		dnsHeader.SetPacketIdentifier(receivedPacket.Header.PacketIdentifier())
 		dnsHeader.SetQueryResponseIndicator(true)
+		dnsHeader.SetOperationCode(receivedPacket.Header.OperationCode())
+		dnsHeader.SetRecursionDesired(receivedPacket.Header.RecursionDesired())
+
+		if receivedPacket.Header.OperationCode() == 0 {
+			dnsHeader.SetResponseCode(0)
+		} else {
+			dnsHeader.SetResponseCode(4)
+		}
 
 		dnsQuestion := &DnsQuestion{
 			DomainName: dname.NewByDomainName("codecrafters.io"),

@@ -69,7 +69,7 @@ func (header *DnsHeader) SetTruncation(value bool) {
 
 // RD: 0b00000001
 func (header *DnsHeader) RecursionDesired() bool {
-	return header[2] == 1
+	return (header[2] & 0b1) == 1
 }
 func (header *DnsHeader) SetRecursionDesired(value bool) {
 	setOrClearBitAtIndex(&header[2], 0, value)

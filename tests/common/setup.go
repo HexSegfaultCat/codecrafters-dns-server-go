@@ -1,4 +1,4 @@
-package dnstest
+package common
 
 import (
 	"app/dns"

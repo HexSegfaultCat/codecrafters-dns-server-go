@@ -6,8 +6,9 @@ import (
 	"net/netip"
 
 	. "app/dns/packet"
-	"app/dns/packet/query_class"
-	"app/dns/packet/query_type"
+	"app/dns/packet/common/dns_class"
+	"app/dns/packet/common/dns_type"
+	"app/dns/packet/common/domain_name"
 	. "app/dns/packet/section"
 )
 
@@ -55,15 +56,24 @@ func (server *DnsServer) StartServer() {
 		dnsHeader.SetQueryResponseIndicator(true)
 
 		dnsQuestion := &DnsQuestion{
-			QueryType:  qtype.HostAddress,
-			QueryClass: qclass.Internet,
+			DomainName: dname.NewByDomainName("codecrafters.io"),
+			QueryType:  dnstype.HostAddress.QueryValue(),
+			QueryClass: dnsclass.Internet.QueryValue(),
 		}
-		dnsQuestion.SetDomainName("codecrafters.io")
+		dnsAnswer := &DnsAnswer{
+			DomainName:  dname.NewByDomainName("codecrafters.io"),
+			RecordType:  dnstype.HostAddress,
+			RecordClass: dnsclass.Internet,
+			TimeToLive:  60,
+			Length:      4,
+			Data:        []byte{8, 8, 8, 8},
+		}
 
 		responsePacket := &DnsPacket{
 			Header: dnsHeader,
 		}
 		responsePacket.AppendQuestionIncrementCount(dnsQuestion)
+		responsePacket.AppendAnswerIncrementCount(dnsAnswer)
 
 		println(responsePacket.DumpPacket(false))
 

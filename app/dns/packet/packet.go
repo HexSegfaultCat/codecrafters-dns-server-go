@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"app/dns/packet/query_class"
-	"app/dns/packet/query_type"
+	"app/dns/packet/common/dns_class"
+	"app/dns/packet/common/dns_type"
 	"app/dns/packet/section"
 )
 
@@ -19,6 +19,7 @@ type DnsSerializer interface {
 type DnsPacket struct {
 	Header    *section.DnsHeader
 	Questions []*section.DnsQuestion
+	Answers   []*section.DnsAnswer
 }
 
 func (packet *DnsPacket) Bytes() []byte {
@@ -26,6 +27,10 @@ func (packet *DnsPacket) Bytes() []byte {
 
 	for _, question := range packet.Questions {
 		result = append(result, question.Bytes()...)
+	}
+
+	for _, answer := range packet.Answers {
+		result = append(result, answer.Bytes()...)
 	}
 
 	return result
@@ -36,6 +41,13 @@ func (packet *DnsPacket) AppendQuestionIncrementCount(question *section.DnsQuest
 
 	newCount := packet.Header.QuestionCount() + 1
 	packet.Header.SetQuestionCount(newCount)
+}
+
+func (packet *DnsPacket) AppendAnswerIncrementCount(answer *section.DnsAnswer) {
+	packet.Answers = append(packet.Answers, answer)
+
+	newCount := packet.Header.AnswerRecordCount() + 1
+	packet.Header.SetAnswerRecordCount(newCount)
 }
 
 func ParsePacketFromBytes(packetBytes []byte) (*DnsPacket, error) {
@@ -59,8 +71,8 @@ func ParsePacketFromBytes(packetBytes []byte) (*DnsPacket, error) {
 
 		result.Questions[i] = &section.DnsQuestion{
 			DomainName: domainName,
-			QueryType:  qtype.QueryType(queryType),
-			QueryClass: qclass.QueryClass(queryClass),
+			QueryType:  dnstype.QueryType(queryType),
+			QueryClass: dnsclass.QueryClass(queryClass),
 		}
 
 		leftSkipBytes = leftSkipBytes[(index + 5):]
@@ -75,13 +87,13 @@ func (packet *DnsPacket) SerializeToMap() map[string]interface{} {
 	structKeys := reflect.TypeOf(*packet)
 	structValues := reflect.ValueOf(*packet)
 
-	for i := 0; i < structValues.NumField(); i++ {
-		fieldKey := structKeys.Field(i)
-		fieldValue := structValues.Field(i)
+	for fieldIndex := 0; fieldIndex < structValues.NumField(); fieldIndex++ {
+		fieldKey := structKeys.Field(fieldIndex)
+		fieldValue := structValues.Field(fieldIndex)
 
 		switch fieldValue.Kind() {
 		case reflect.Slice:
-			serializedSlice := make([]map[string]interface{}, len(packet.Questions))
+			serializedSlice := make([]map[string]interface{}, fieldValue.Len())
 			for i := range serializedSlice {
 				serializedSlice[i] = fieldValue.Index(i).Interface().(DnsSerializer).SerializeToMap()
 			}

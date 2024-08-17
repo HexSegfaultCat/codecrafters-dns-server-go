@@ -1,9 +1,9 @@
-package qtype
+package dnstype
 
-type QueryType uint16
+type RecordType uint16
 
 const (
-	_                     = QueryType(iota)
+	_                     = RecordType(iota)
 	HostAddress           // A
 	AuthorativeNameServer // NS
 	MailDestination       // MD (obsolete - use `MailExchange`)
@@ -20,12 +20,4 @@ const (
 	MailListInformation   // MINFO
 	MailExchange          // MX
 	TextStrings           // TXT
-)
-
-const (
-	_                  = QueryType(iota + 251)
-	TransferEntireZone // AXFR
-	MailboxRecords     // MAILB
-	MailAgent          // MAILA
-	AnyType            // *
 )

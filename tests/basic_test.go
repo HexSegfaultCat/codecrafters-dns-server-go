@@ -3,12 +3,14 @@ package dnstest
 import (
 	"testing"
 
+	"tests/common"
+
 	"app/dns/packet"
 	"app/dns/packet/section"
 )
 
 func TestDnsHeader(t *testing.T) {
-	connection, err := InitializeDnsServer()
+	connection, err := common.InitializeDnsServer()
 	if err != nil {
 		t.Error(err)
 	}
@@ -36,8 +38,8 @@ func TestDnsHeader(t *testing.T) {
 
 	packetIdentifier := (uint16(responseBuffer[0]) << 8) | uint16(responseBuffer[1])
 	responseIndicator := responseBuffer[2] >> 7
-	questionCount := responseBuffer[5]
-	otherFields := append(responseBuffer[3:5], responseBuffer[6:12]...)
+	questionCount := responseBuffer[5] // bytes [4][5] - big-endian
+	answerCount := responseBuffer[7]   // bytes [6][7] - big-endian
 
 	if packetIdentifier != 1234 {
 		t.Errorf("Expected PacketIdentifier to be %d, but got %d", 1234, packetIdentifier)
@@ -45,19 +47,17 @@ func TestDnsHeader(t *testing.T) {
 	if responseIndicator != 1 {
 		t.Errorf("Expected ResponseIndicator to be %d, but got %d", 1, responseIndicator)
 	}
+
 	if questionCount != 1 {
 		t.Errorf("Expected QuestionCount to be %d, but got %d", 1, questionCount)
 	}
-
-	for i, v := range otherFields {
-		if v != 0 {
-			t.Errorf("Value of `otherFields[%d]` should be 0 but is %d", i, v)
-		}
+	if answerCount != 1 {
+		t.Errorf("Expected AnswerCount to be %d, but got %d", 1, answerCount)
 	}
 }
 
 func TestDnsQuestion(t *testing.T) {
-	connection, err := InitializeDnsServer()
+	connection, err := common.InitializeDnsServer()
 	if err != nil {
 		t.Error(err)
 	}
@@ -68,7 +68,7 @@ func TestDnsQuestion(t *testing.T) {
 		QueryType:  1,
 		QueryClass: 1,
 	}
-	question.SetDomainName("www.example.com")
+	question.DomainName.SetDomainName("www.example.com")
 
 	packetRequest := packet.DnsPacket{
 		Header: &section.DnsHeader{},

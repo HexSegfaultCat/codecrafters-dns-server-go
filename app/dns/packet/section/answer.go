@@ -10,8 +10,8 @@ import (
 
 type DnsAnswer struct {
 	DomainName  DomainName  // QNAME
-	RecordType  RecordType  // QTYPE
-	RecordClass RecordClass // QCLASS
+	RecordType  RecordType  // TYPE
+	RecordClass RecordClass // CLASS
 	TimeToLive  uint32      // TTL
 	Length      uint16      // RDLENGTH
 	Data        []byte      // RDATA

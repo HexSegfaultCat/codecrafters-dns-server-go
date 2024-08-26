@@ -5,6 +5,10 @@ tasks:
     cmds:
       - go run ./app
 
+  start-server-with-resolver:
+    cmds:
+      - go run ./app --resolver 8.8.4.4:53
+
   unit-tests:
     cmds:
       - go test -v ./app/...

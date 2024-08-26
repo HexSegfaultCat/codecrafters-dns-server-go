@@ -56,6 +56,7 @@ func ParsePacketFromBytes(packetBytes []byte) (*DnsPacket, error) {
 	result := &DnsPacket{
 		Header:    &dnsHeader,
 		Questions: make([]*dnssection.DnsQuestion, dnsHeader.QuestionCount()),
+		Answers:   make([]*dnssection.DnsAnswer, dnsHeader.AnswerRecordCount()),
 	}
 
 	leftSkipBytes := packetBytes[12:]
@@ -79,6 +80,37 @@ func ParsePacketFromBytes(packetBytes []byte) (*DnsPacket, error) {
 		}
 
 		leftSkipBytes = leftSkipBytes[(leftOffset + 4):]
+	}
+	for i := range result.Answers {
+		domainName, leftOffset, err := dnsname.ParseDomainName(leftSkipBytes)
+		if err != nil {
+			panic(err)
+		}
+
+		recordType := binary.BigEndian.Uint16(
+			leftSkipBytes[leftOffset:(leftOffset + 2)],
+		)
+		recordClass := binary.BigEndian.Uint16(
+			leftSkipBytes[(leftOffset + 2):(leftOffset + 4)],
+		)
+		timeToLive := binary.BigEndian.Uint32(
+			leftSkipBytes[(leftOffset + 4):(leftOffset + 8)],
+		)
+		length := binary.BigEndian.Uint16(
+			leftSkipBytes[(leftOffset + 8):(leftOffset + 10)],
+		)
+		data := leftSkipBytes[(leftOffset + 10):(leftOffset + 10 + int(length))]
+
+		result.Answers[i] = &dnssection.DnsAnswer{
+			DomainName:  domainName,
+			RecordType:  dnstype.RecordType(recordType),
+			RecordClass: dnsclass.RecordClass(recordClass),
+			TimeToLive:  timeToLive,
+			Length:      length,
+			Data:        data,
+		}
+
+		leftSkipBytes = leftSkipBytes[(leftOffset + 10 + int(length)):]
 	}
 
 	return result, nil

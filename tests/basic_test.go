@@ -10,7 +10,8 @@ import (
 )
 
 func TestDnsHeader(t *testing.T) {
-	connection, err := common.InitializeDnsServer()
+	port := common.InitializeDnsServer()
+	connection, err := common.CreateConnection(port)
 	if err != nil {
 		t.Error(err)
 	}
@@ -20,7 +21,7 @@ func TestDnsHeader(t *testing.T) {
 
 	// Setup
 	packetRequest := packet.DnsPacket{
-		Header: &section.DnsHeader{},
+		Header: &dnssection.DnsHeader{},
 	}
 	packetRequest.Header.SetPacketIdentifier(expectedPacketIdentifier)
 
@@ -61,21 +62,22 @@ func TestDnsHeader(t *testing.T) {
 }
 
 func TestDnsQuestion(t *testing.T) {
-	connection, err := common.InitializeDnsServer()
+	port := common.InitializeDnsServer()
+	connection, err := common.CreateConnection(port)
 	if err != nil {
 		t.Error(err)
 	}
 	defer connection.Close()
 
 	// Setup
-	question := &section.DnsQuestion{
+	question := &dnssection.DnsQuestion{
 		QueryType:  1,
 		QueryClass: 1,
 	}
 	question.DomainName.SetDomainName("www.example.com")
 
 	packetRequest := packet.DnsPacket{
-		Header: &section.DnsHeader{},
+		Header: &dnssection.DnsHeader{},
 	}
 	packetRequest.AppendQuestionIncrementCount(question)
 

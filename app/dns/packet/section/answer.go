@@ -1,10 +1,11 @@
-package section
+package dnssection
 
 import (
+	"encoding/binary"
+
 	. "app/dns/packet/common/dns_class"
 	. "app/dns/packet/common/dns_type"
 	. "app/dns/packet/common/domain_name"
-	"encoding/binary"
 )
 
 type DnsAnswer struct {
@@ -17,7 +18,7 @@ type DnsAnswer struct {
 }
 
 func (answer *DnsAnswer) Bytes() []byte {
-	result := []byte(answer.DomainName)
+	result := answer.DomainName.Bytes()
 
 	result = binary.BigEndian.AppendUint16(result, uint16(answer.RecordType))
 	result = binary.BigEndian.AppendUint16(result, uint16(answer.RecordClass))
@@ -30,7 +31,7 @@ func (answer *DnsAnswer) Bytes() []byte {
 
 func (answer *DnsAnswer) SerializeToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"NAME":     answer.DomainName.Parts(),
+		"NAME":     answer.DomainName.SerializedParts(),
 		"TYPE":     answer.RecordType,
 		"CLASS":    answer.RecordClass,
 		"TTL":      answer.TimeToLive,

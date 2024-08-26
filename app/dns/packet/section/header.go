@@ -1,4 +1,4 @@
-package section
+package dnssection
 
 import "encoding/binary"
 

@@ -48,7 +48,7 @@ func (server *DnsServer) StartServer() {
 			println(err)
 		}
 
-		println(receivedPacket.DumpPacket(true))
+		println(receivedPacket.DumpPacket("REQ"))
 
 		dnsHeader := &DnsHeader{}
 		dnsHeader.SetPacketIdentifier(receivedPacket.Header.PacketIdentifier())
@@ -66,7 +66,14 @@ func (server *DnsServer) StartServer() {
 			Header: dnsHeader,
 		}
 
-		for _, dnsQuestion := range receivedPacket.Questions {
+		for _, receivedQuestion := range receivedPacket.Questions {
+			dnsQuestion := &DnsQuestion{
+				DomainName: receivedQuestion.DomainName.DerefDomainName(receivedData),
+				QueryType:  receivedQuestion.QueryType,
+				QueryClass: receivedQuestion.QueryClass,
+			}
+			responsePacket.AppendQuestionIncrementCount(dnsQuestion)
+
 			dnsAnswer := &DnsAnswer{
 				DomainName:  dnsQuestion.DomainName,
 				RecordType:  dnstype.HostAddress,
@@ -76,10 +83,9 @@ func (server *DnsServer) StartServer() {
 				Data:        []byte{8, 8, 8, 8},
 			}
 			responsePacket.AppendAnswerIncrementCount(dnsAnswer)
-			responsePacket.AppendQuestionIncrementCount(dnsQuestion)
 		}
 
-		println(responsePacket.DumpPacket(false))
+		println(responsePacket.DumpPacket("RES"))
 
 		_, err = udpConn.WriteToUDP(responsePacket.Bytes(), source)
 		if err != nil {

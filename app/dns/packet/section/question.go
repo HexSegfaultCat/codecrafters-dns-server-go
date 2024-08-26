@@ -1,10 +1,11 @@
-package section
+package dnssection
 
 import (
+	"encoding/binary"
+
 	. "app/dns/packet/common/dns_class"
 	. "app/dns/packet/common/dns_type"
 	. "app/dns/packet/common/domain_name"
-	"encoding/binary"
 )
 
 type DnsQuestion struct {
@@ -14,7 +15,7 @@ type DnsQuestion struct {
 }
 
 func (question *DnsQuestion) Bytes() []byte {
-	result := []byte(question.DomainName)
+	result := question.DomainName.Bytes()
 
 	result = binary.BigEndian.AppendUint16(result, uint16(question.QueryType))
 	result = binary.BigEndian.AppendUint16(result, uint16(question.QueryClass))
@@ -24,7 +25,7 @@ func (question *DnsQuestion) Bytes() []byte {
 
 func (question *DnsQuestion) SerializeToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"QNAME":  question.DomainName.Parts(),
+		"QNAME":  question.DomainName.SerializedParts(),
 		"QTYPE":  question.QueryType,
 		"QCLASS": question.QueryClass,
 	}

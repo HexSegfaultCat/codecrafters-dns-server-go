@@ -1,7 +1,6 @@
 package packet
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -9,6 +8,7 @@ import (
 
 	"app/dns/packet/common/dns_class"
 	"app/dns/packet/common/dns_type"
+	"app/dns/packet/common/domain_name"
 	"app/dns/packet/section"
 )
 
@@ -17,9 +17,9 @@ type DnsSerializer interface {
 }
 
 type DnsPacket struct {
-	Header    *section.DnsHeader
-	Questions []*section.DnsQuestion
-	Answers   []*section.DnsAnswer
+	Header    *dnssection.DnsHeader
+	Questions []*dnssection.DnsQuestion
+	Answers   []*dnssection.DnsAnswer
 }
 
 func (packet *DnsPacket) Bytes() []byte {
@@ -36,14 +36,14 @@ func (packet *DnsPacket) Bytes() []byte {
 	return result
 }
 
-func (packet *DnsPacket) AppendQuestionIncrementCount(question *section.DnsQuestion) {
+func (packet *DnsPacket) AppendQuestionIncrementCount(question *dnssection.DnsQuestion) {
 	packet.Questions = append(packet.Questions, question)
 
 	newCount := packet.Header.QuestionCount() + 1
 	packet.Header.SetQuestionCount(newCount)
 }
 
-func (packet *DnsPacket) AppendAnswerIncrementCount(answer *section.DnsAnswer) {
+func (packet *DnsPacket) AppendAnswerIncrementCount(answer *dnssection.DnsAnswer) {
 	packet.Answers = append(packet.Answers, answer)
 
 	newCount := packet.Header.AnswerRecordCount() + 1
@@ -51,31 +51,34 @@ func (packet *DnsPacket) AppendAnswerIncrementCount(answer *section.DnsAnswer) {
 }
 
 func ParsePacketFromBytes(packetBytes []byte) (*DnsPacket, error) {
-	dnsHeader := section.DnsHeader(packetBytes[:12])
+	dnsHeader := dnssection.DnsHeader(packetBytes[:12])
 
 	result := &DnsPacket{
 		Header:    &dnsHeader,
-		Questions: make([]*section.DnsQuestion, dnsHeader.QuestionCount()),
+		Questions: make([]*dnssection.DnsQuestion, dnsHeader.QuestionCount()),
 	}
 
 	leftSkipBytes := packetBytes[12:]
 	for i := range result.Questions {
-		index := bytes.IndexByte(leftSkipBytes, 0)
-		if index == -1 {
-			return result, fmt.Errorf("Unable to parse question number %d\n", i+1)
+		domainName, leftOffset, err := dnsname.ParseDomainName(leftSkipBytes)
+		if err != nil {
+			panic(err)
 		}
 
-		domainName := leftSkipBytes[:(index + 1)]
-		queryType := binary.BigEndian.Uint16(leftSkipBytes[(index + 1):(index + 3)])
-		queryClass := binary.BigEndian.Uint16(leftSkipBytes[(index + 3):(index + 5)])
+		queryType := binary.BigEndian.Uint16(
+			leftSkipBytes[leftOffset:(leftOffset + 2)],
+		)
+		queryClass := binary.BigEndian.Uint16(
+			leftSkipBytes[(leftOffset + 2):(leftOffset + 4)],
+		)
 
-		result.Questions[i] = &section.DnsQuestion{
+		result.Questions[i] = &dnssection.DnsQuestion{
 			DomainName: domainName,
 			QueryType:  dnstype.QueryType(queryType),
 			QueryClass: dnsclass.QueryClass(queryClass),
 		}
 
-		leftSkipBytes = leftSkipBytes[(index + 5):]
+		leftSkipBytes = leftSkipBytes[(leftOffset + 4):]
 	}
 
 	return result, nil
@@ -108,13 +111,8 @@ func (packet *DnsPacket) SerializeToMap() map[string]interface{} {
 	return result
 }
 
-func (packet *DnsPacket) DumpPacket(isRequest bool) string {
-	requestResponse := "RES"
-	if isRequest {
-		requestResponse = "REQ"
-	}
-
-	prefix := fmt.Sprintf("[%d][%s] ", packet.Header.PacketIdentifier(), requestResponse)
+func (packet *DnsPacket) DumpPacket(label string) string {
+	prefix := fmt.Sprintf("[%d][%s] ", packet.Header.PacketIdentifier(), label)
 
 	marshalled, _ := json.MarshalIndent(packet.SerializeToMap(), prefix, "  ")
 	return prefix + string(marshalled) + "\n"
